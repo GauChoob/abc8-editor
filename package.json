@@ -1,0 +1,16 @@
+{
+  "name": "abctest",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "elma-pcx": "^1.1.2"
+  }
+}
