@@ -128,6 +128,13 @@ const EditorPalette = new Uint8Array([
   0x00,
 ]);
 
+const getSpacing = (filename) => {
+  if (filename == "menu") {
+    return 2;
+  }
+  return 1;
+};
+
 const getPalette = (filename) => {
   if (filename == "menu") {
     return MenuPalette;
@@ -140,12 +147,20 @@ const getPalette = (filename) => {
 
 const isFlipped = (filename) => {
   if (filename == "menu") {
-    return false;
+    return 0;
   }
   if (filename.startsWith("kisbetu")) {
-    return false;
+    return 0;
   }
-  return true;
+  if (filename == "small") {
+    return 17;
+  }
+  if (filename == "medium") {
+    return 24;
+  }
+  if (filename == "large") {
+    return 91;
+  }
 };
 
 const verticalFlip = (sprite) => {
@@ -167,14 +182,58 @@ const getTransparencyIndex = (filename) => {
     return 115;
   }
   return 145;
-}
+};
 
 const addTransparency = (sprite, index) => {
-  for(let i=0; i < sprite.width*sprite.height;i++) {
-    if(sprite.transparency[i] == false) {
+  for (let i = 0; i < sprite.width * sprite.height; i++) {
+    if (sprite.transparency[i] == false) {
       sprite.pixels[i] = index;
     }
   }
+};
+
+function getAtlas(abc, filename) {
+  let totalWidth = 0;
+  let maxHeight = 0;
+  let minHeight = 100000000;
+  const spacing = getSpacing(filename);
+
+  for (const letter of abc.letters) {
+    totalWidth += letter.sprite.width + spacing;
+    minHeight = Math.min(minHeight, letter.y);
+    maxHeight = Math.max(maxHeight, letter.sprite.height + letter.y);
+  }
+
+  const height = maxHeight - minHeight;
+
+  const atlasPixels = new Uint8Array(totalWidth * height);
+  atlasPixels.fill(getTransparencyIndex(filename));
+
+  let x = 0;
+
+  for (const letter of abc.letters) {
+    const sprite = letter.sprite;
+    const dstY = letter.y - minHeight;
+    for (let y = 0; y < sprite.height; y++) {
+      const srcRowStart = y * sprite.width;
+      const dstRowStart = (dstY + y) * totalWidth + x;
+      atlasPixels.set(
+        sprite.pixels.subarray(srcRowStart, srcRowStart + sprite.width),
+        dstRowStart,
+      );
+    }
+
+    x += sprite.width + spacing;
+  }
+
+  const sprite = {
+    width: totalWidth,
+    height: height,
+    pixels: atlasPixels,
+  };
+
+  const data = createBMP(sprite, getPalette(filename));
+  fs.writeFileSync(`./fonts/${filename}/Atlas.bmp`, data);
 }
 
 const getAbc = async (filename) => {
@@ -190,16 +249,18 @@ const getAbc = async (filename) => {
     const letter = abc.letters[i];
     const sprite = letter.sprite;
     addTransparency(sprite, transparency);
-    if(flipped) {
+    if (flipped) {
+      letter.y = flipped - sprite.height - letter.y;
       verticalFlip(sprite);
     }
     const data = createBMP(sprite, palette);
-    //writePCX(sprite.pixels, sprite.width, sprite.height, palette);
     fs.writeFileSync(
       `./fonts/${filename}/${letter.code}_${letter.y}.bmp`,
       data,
     );
   }
+
+  getAtlas(abc, filename);
 };
 
 getAbc("small");

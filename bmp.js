@@ -1,3 +1,4 @@
+// ChatGPT, then modified to fix bugs
 export const createBMP = (sprite, palette) => {
   const width = sprite.width;
   const height = sprite.height;
